@@ -1,7 +1,7 @@
 # Lights-on software factory boilerplate for Claude Code
 
 A starting point for running a lights-on software factory with Claude Code. Based on the setup developed for
-[Votito](https://www.votito.com), where the orchestrator reduced token cost compared to bare-bones Claude workflow execution by around 80%. 
+[Votito](https://www.votito.com), where the orchestrator reduced token spend compared to bare-bones Claude workflow execution by around 80%. 
 
 See [gojko.net/slides/202609-gotocph.pdf](https://gojko.net/slides/202609-gotocph.pdf) for a quick overview.
 
@@ -13,11 +13,11 @@ software factories:
 
 This repository provides setup for:
 
-1. A sandbox/container for running Claude Code in a secure environment, sharing only the workspace file system with the host. See [CONTAINER.md](CONTAINER.md) for more information.
+1. A sandbox/container for running Claude Code in a secure environment, sharing only the workspace directory with the host. See [CONTAINER.md](CONTAINER.md) for more information.
 2. A deterministic bash command regulator, to reduce approval fatigue and ensure agents execute the commands allowed by project-specific rules. The regulator performs a deep-inspection of bash commands and provides automated approve/deny with instructions on what to do instead if blocked. See [REGULATOR.md](REGULATOR.md) for more information. Ask Claude to add more custom rules each time it asks you for approval.
 3. A deterministic linter-based feedback system for enforcing custom domain-specific rules, to help reduce human involvement in code review. A `PostToolUse` hook runs the linter on every JavaScript file Claude edits, and guides the agents to avoid common mistakes with helpful error messages. Ask Claude to write more custom rules each time you find yourself providing repetitive design/code feedback. Ask Claude to implement custom eslint language parsers for HTML/CSS/other file types. See [LINTER-HOOK.md](LINTER-HOOK.md) for more information.
 4. A basic planning/implementation workflow. This is a trivial example intentionally kept simple to demonstrate the format and serve as a foundation for the orchestrator. You should probably replace it with your own commands or more complex rules. See [WORKFLOW.md](WORKFLOW.md) for more information.
-5. A deterministic multi-agent Claude workflow script generator. Based on the plan produced by the implementation workflow, it creates Claude workflow scripts, structures testing and gates and avoids wasting inference tokens on the mechanical part of workflow orchestration. See [ORCHESTRATOR.md](ORCHESTRATOR.md) for more information.
+5. A deterministic multi-agent Claude workflow script generator. Based on the plan produced by the implementation workflow, it creates Claude workflow scripts, structures testing and gates and avoids wasting inference tokens on the mechanical part of workflow orchestration. It speeds up workflow creation and moves many common workflow orchestration tasks from inference (LLM) to deterministic tools (command-line) speeding them up and significantly reducing token spend. See [ORCHESTRATOR.md](ORCHESTRATOR.md) for more information.
 
 The `workspace` directory contains Claude code setup and a trivial example project.
 
