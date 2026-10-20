@@ -35,41 +35,7 @@ repository root, which is mounted into the container. See
 
 ## The image
 
-`vm/Dockerfile` builds the image.
-
-| Item              | Value                                                                                                                                                                                                                                                                                                                       |
-| :---------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Base image        | `alpine:3.23.3`                                                                                                                                                                                                                                                                                                             |
-| Packages (apk)    | `nodejs`, `npm`, `git`, `py3-pip`, `bash`, `curl`, `vim`, `make`, `rsync`, a C/C++ toolchain (`gcc`, `g++`, `libc-dev`, `binutils`, `autoconf`, `automake`, `libtool`, `pkgconfig`, `check-dev`, `file`, `patch`), `jq`, `libxml2-utils`, `groff`, `tidyhtml`, `yq`, `zip`, `sqlite`, `util-linux`, `alpine-conf`, `tzdata` |
-| User              | `builder` (group `builder`), home `/builder`. The image runs as this user.                                                                                                                                                                                                                                                  |
-| Timezone          | `Europe/London` (`setup-timezone`)                                                                                                                                                                                                                                                                                          |
-| npm global prefix | `~/.local/`, with `/builder/.local/bin` on `PATH`, so `npm install -g` works without root. npm funding messages are off.                                                                                                                                                                                                    |
-| `NODE_OPTIONS`    | `--experimental-vm-modules --disable-warning=ExperimentalWarning`. The tests are ES modules, and bare `jest` needs the first flag.                                                                                                                                                                                          |
-| Python            | a virtual environment in `/builder/pyenv`, with an upgraded `pip`                                                                                                                                                                                                                                                           |
-| Entry point       | `/bin/bash`                                                                                                                                                                                                                                                                                                                 |
-
-Node.js comes from the Alpine package repository, so its version is the one that
-Alpine release ships. The workspace needs Node.js 22 or later.
-
-### What `.bashrc` adds
-
-The image appends these lines to `/builder/.bashrc`. They apply to the
-interactive shells of `make shell` and `make claude` only; `make init`,
-`make test` and `make lint` start `make` directly and do not read `.bashrc`.
-They need nothing from it: `workspace/makefile` puts `node_modules/.bin` on
-`PATH` itself, and the image sets `NODE_OPTIONS` for every process.
-
-- Activates the Python virtual environment, and aliases `python` to `python3`
-  and `pip` to `pip3`. The prompt is saved before and restored after, so the
-  environment does not change it.
-- Puts `$PROJECT/workspace/node_modules/.bin/` first on `PATH`. This is what
-  makes `claude`, `jest` and `eslint` run bare, which the regulator expects (see
-  [REGULATOR.md](REGULATOR.md)).
-- Exports `NODE_OPTIONS` again, with the same value as the image.
-- Runs `git config --global --add safe.directory $PROJECT`, because the mounted
-  repository belongs to the host user, and git refuses to work in a repository
-  owned by another user. The setting lives in the container home, so it is added
-  again in each shell.
+`vm/Dockerfile` builds the image. Update it to add the packages required by your team for development.
 
 ## Makefile goals
 
@@ -100,40 +66,6 @@ To see the exact commands without running them, use a dry run:
 make -n init
 make -n shell
 ```
-
-## What the run command sets
-
-`init`, `test`, `lint`, `shell` and `claude` share one `docker run` command:
-
-| Option                                      | Why                                                                                                                                           |
-| :------------------------------------------ | :-------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--rm`                                      | the container is removed on exit; only the mounted directories keep changes                                                                   |
-| `--platform $(DOCKER_PLATFORM)`             | the same platform the image was built for                                                                                                     |
-| `-v $(PROJECT):$(PROJECT)`                  | the repository, mounted at the **same absolute path** as on the host, so a path printed in the container is valid on the host too             |
-| `--mount type=bind,source=/tmp,target=/tmp` | `/tmp` is shared with the host. The transient directory of the tooling (`/tmp/claude-transient`, see [SETTINGS.md](SETTINGS.md)) is under it. |
-| `$TMPDIR` mount                             | only when `TMPDIR` is set and is not `/tmp`: the host `$TMPDIR` is mounted at the same path. The variable itself is not passed in.            |
-| `-e PROJECT=$(PROJECT)`                     | the repository path; `.bashrc` uses it for `PATH` and `safe.directory`                                                                        |
-| `-v $(PROJECT)/.claude-home:/builder/.claude` | the Claude Code configuration directory of the container user, kept in the git-ignored `.claude-home/` at the repository root                 |
-| `-e CLAUDE_CONFIG_DIR=/builder/.claude`     | Claude Code keeps all its state in that directory, including the first-run state it would otherwise put in `~/.claude.json`                  |
-| `-e CDPATH=.:$(PROJECT):$(PROJECT)`         | `cd workspace` (or any top-level directory) works from anywhere in the container                                                              |
-| `--shm-size=4gb`                            | a large shared-memory area, for tools such as headless browsers that use `/dev/shm`                                                           |
-| `-w $(PROJECT)/workspace`                   | the working directory is `workspace/`, where Claude Code must start                                                                           |
-
-`PROJECT` is the directory of the root `makefile`, so you can run `make -C
-<repository> shell` from anywhere.
-
-`shell` adds:
-
-- `-p $(CONTAINER_PORT):$(LOCAL_PORT)/tcp`, default `8080:8080`. Docker reads the
-  first number as the host port and the second as the container port. Start a
-  server in the container on that port to reach it from the host.
-- `-e CONTAINER_PORT=$(CONTAINER_PORT)`.
-- `-e PS1=...`: the prompt starts with the image name, for example
-  `(example-claude-workflow) [14:02:07] /path/to/repo/workspace/ $`.
-- `-it`: an interactive terminal.
-
-`claude` adds `-e ANTHROPIC_API_KEY`, `--entrypoint /bin/bash` and `-it`, and
-runs `-ic claude`. It publishes no port.
 
 ## Overrides
 
