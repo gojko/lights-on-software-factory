@@ -5,6 +5,7 @@ import { progressReportOf } from '../src/generator/progress-report-of.js';
 import { readExecutionPlan } from '../src/generator/read-execution-plan.js';
 import { readPlanSteps } from '../src/generator/read-plan-steps.js';
 import { readProgressLines } from '../src/generator/read-progress-lines.js';
+import { streamsOf } from '../src/generator/streams-of.js';
 
 const USAGE = 'show-progress: name the plan to show, for example: node .claude/workflow/bin/show-progress.js plans/a-plan.md [--lessons] [--out /tmp/claude-transient/status.txt]',
 	MARKDOWN_SUFFIX = /\.md$/u,
@@ -70,15 +71,18 @@ const USAGE = 'show-progress: name the plan to show, for example: node .claude/w
 		} catch (thrown) {
 			return { out: '', error: messageOf(thrown), status: 1 };
 		}
-	},
-	answer = answerOf(process.argv.slice(2));
+	};
 
-if (answer.out !== '') {
-	process.stdout.write(`${answer.out}\n`);
+const main = () => {
+	const { stdout, stderr, status } = streamsOf(answerOf(process.argv.slice(2)));
+
+	process.stdout.write(stdout);
+	process.stderr.write(stderr);
+	process.exit(status);
+};
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+	main();
 }
 
-if (answer.error !== '') {
-	process.stderr.write(`${answer.error}\n`);
-}
-
-process.exit(answer.status);
+export { answerOf };

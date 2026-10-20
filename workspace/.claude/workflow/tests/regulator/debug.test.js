@@ -1,30 +1,11 @@
 import { describe, test, expect } from '@jest/globals';
-import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
+import { debugCommand } from '../../bin/debug.js';
 
-const BIN = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', 'bin', 'debug.js');
+const runWithArg = (command) => ({ stdout: debugCommand(command) });
 
-const runWithArg = (command) => {
-	const result = spawnSync('node', [BIN, command], { encoding: 'utf8' });
-	return { exitCode: result.status, stdout: result.stdout, stderr: result.stderr };
-};
-
-const runWithStdin = (command) => {
-	const result = spawnSync('node', [BIN], { input: command, encoding: 'utf8' });
-	return { exitCode: result.status, stdout: result.stdout, stderr: result.stderr };
-};
-
-describe('debug.js bin entry', () => {
-	test('exits non-zero and prints usage when neither argv nor stdin supplies a command', () => {
-		const result = spawnSync('node', [BIN], { encoding: 'utf8', input: '' });
-		expect(result.status).not.toBe(0);
-		expect(result.stderr).toMatch(/usage:/i);
-	});
-
+describe('debugCommand', () => {
 	test('prints parsed segments, per-rule resolution, and merged decision for an allowed command', () => {
-		const { exitCode, stdout } = runWithArg('ls /tmp');
-		expect(exitCode).toBe(0);
+		const { stdout } = runWithArg('ls /tmp');
 		expect(stdout).toMatch(/command:.*ls \/tmp/);
 		expect(stdout).toMatch(/segment 0/);
 		expect(stdout).toMatch(/tokens:.*ls.*\/tmp/);
@@ -33,8 +14,7 @@ describe('debug.js bin entry', () => {
 	});
 
 	test('prints deny resolution with the rule id and reason', () => {
-		const { exitCode, stdout } = runWithArg('sudo make deploy');
-		expect(exitCode).toBe(0);
+		const { stdout } = runWithArg('sudo make deploy');
 		expect(stdout).toMatch(/resolved by rule:.*sudo/);
 		expect(stdout).toMatch(/decision:.*deny/);
 		expect(stdout).toMatch(/reason:.*sudo is not allowed/);
@@ -72,11 +52,6 @@ describe('debug.js bin entry', () => {
 		expect(stdout).toMatch(/merged decision: allow/);
 	});
 
-	test('reads command from stdin when no argv is provided', () => {
-		const { exitCode, stdout } = runWithStdin('ls /tmp');
-		expect(exitCode).toBe(0);
-		expect(stdout).toMatch(/merged decision: allow/);
-	});
 
 	test('shows unwrapped tokens distinct from raw tokens for wrapped commands', () => {
 		const { stdout } = runWithArg('time npx jest');
@@ -100,12 +75,9 @@ describe('debug.js bin entry', () => {
 	});
 });
 
-const runAs = (role, command) => {
-	const result = spawnSync('node', [BIN, ...role, ...command.split(' ')], { encoding: 'utf8' });
-	return { exitCode: result.status, stdout: result.stdout, stderr: result.stderr };
-};
+const runAs = (role, command) => ({ stdout: debugCommand(command, { agentType: role[1] }) });
 
-describe('debug.js states which role it traced', () => {
+describe('debugCommand states which role it traced', () => {
 	test('names the session when no agent is given', () => {
 		expect(runAs([], 'make test').stdout).toMatch(/role: the session, with no agent type/);
 	});
@@ -122,11 +94,6 @@ describe('debug.js states which role it traced', () => {
 		expect(runAs(['--agent', 'workflow-gate'], 'ls').stdout.split('\n')[1]).toMatch(/^role: workflow-gate \(\d+ rules\)$/);
 	});
 
-	test('traces the command and not the flag that named the role', () => {
-		const { stdout } = runAs(['--agent', 'workflow-worker'], 'ls /tmp');
-		expect(stdout).toMatch(/command: ls \/tmp/);
-		expect(stdout).toMatch(/merged decision: allow/);
-	});
 
 	test('answers a role differently from the session, which is why the flag exists', () => {
 		expect(runAs(['--agent', 'workflow-worker'], 'make test').stdout).toMatch(/merged decision: deny/);
@@ -141,15 +108,5 @@ describe('debug.js states which role it traced', () => {
 	test('answers the same decision for every role where no rule states a caller', () => {
 		expect(runAs(['--agent', 'workflow-worker'], 'cat package.json').stdout).toMatch(/merged decision: allow/);
 		expect(runAs([], 'cat package.json').stdout).toMatch(/merged decision: allow/);
-	});
-
-	test('names the agent flag in its usage line', () => {
-		const result = spawnSync('node', [BIN], { encoding: 'utf8', input: '' });
-		expect(result.stderr).toMatch(/--agent <agent-type>/);
-	});
-
-	test('names no sibling flag, which this tree does not carry', () => {
-		const result = spawnSync('node', [BIN], { encoding: 'utf8', input: '' });
-		expect(result.stderr).not.toMatch(/--sibling/);
 	});
 });

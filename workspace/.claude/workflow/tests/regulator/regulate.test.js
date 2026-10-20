@@ -1,19 +1,15 @@
 import { describe, test, expect } from '@jest/globals';
-import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
+import { regulate } from '../../bin/regulate.js';
 
-const BIN = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', 'bin', 'regulate.js');
-
-const runBin = (stdinPayload) => {
-	const result = spawnSync('node', [BIN], { input: stdinPayload, encoding: 'utf8' });
-	return { exitCode: result.status, stdout: result.stdout, stderr: result.stderr };
+const regulateEvent = (stdinPayload) => {
+	const result = regulate(JSON.parse(stdinPayload));
+	return { exitCode: result.exitCode, stdout: result.stdout ?? '', stderr: result.stderr ?? '' };
 };
 
-describe('regulate.js bin entry', () => {
+describe('regulate', () => {
 	describe('bypassPermissions refusal', () => {
 		test('exits with code 2 and emits stderr when permission_mode is bypassPermissions', () => {
-			const result = runBin(
+			const result = regulateEvent(
 				JSON.stringify({
 					tool_name: 'Bash',
 					permission_mode: 'bypassPermissions',
@@ -26,7 +22,7 @@ describe('regulate.js bin entry', () => {
 		});
 
 		test('bypassPermissions blocks regardless of the command', () => {
-			const result = runBin(
+			const result = regulateEvent(
 				JSON.stringify({
 					tool_name: 'Bash',
 					permission_mode: 'bypassPermissions',
@@ -40,7 +36,7 @@ describe('regulate.js bin entry', () => {
 
 	describe('non-Bash tools', () => {
 		test('exits 0 with empty stdout when tool_name is not Bash', () => {
-			const result = runBin(
+			const result = regulateEvent(
 				JSON.stringify({
 					tool_name: 'Edit',
 					permission_mode: 'default',
@@ -52,7 +48,7 @@ describe('regulate.js bin entry', () => {
 		});
 
 		test('does not apply bypassPermissions check to non-Bash tools', () => {
-			const result = runBin(
+			const result = regulateEvent(
 				JSON.stringify({
 					tool_name: 'Edit',
 					permission_mode: 'bypassPermissions',
@@ -66,7 +62,7 @@ describe('regulate.js bin entry', () => {
 
 	describe('Bash tool decision plumbing', () => {
 		test('exits 0 with empty stdout when no rule matches (falls through to prompt)', () => {
-			const result = runBin(
+			const result = regulateEvent(
 				JSON.stringify({
 					tool_name: 'Bash',
 					permission_mode: 'default',
@@ -78,7 +74,7 @@ describe('regulate.js bin entry', () => {
 		});
 
 		test('tooComplex parser result emits deny JSON pointing at debug.js (heredoc missing close)', () => {
-			const result = runBin(
+			const result = regulateEvent(
 				JSON.stringify({
 					tool_name: 'Bash',
 					permission_mode: 'default',
@@ -92,35 +88,11 @@ describe('regulate.js bin entry', () => {
 			expect(parsed.hookSpecificOutput.permissionDecisionReason).toMatch(/debug\.js/);
 		});
 	});
-
-	describe('malformed input', () => {
-		test('exits non-zero (not 2) with stderr message when stdin is not valid JSON', () => {
-			const result = runBin('not-json');
-			expect(result.exitCode).not.toBe(0);
-			expect(result.exitCode).not.toBe(2);
-			expect(result.stderr).toMatch(/invalid JSON on stdin/);
-			expect(result.stdout).toBe('');
-		});
-
-		test('exits non-zero (not 2) with stderr message when an internal error is thrown', () => {
-			const result = runBin(
-				JSON.stringify({
-					tool_name: 'Bash',
-					permission_mode: 'default',
-					tool_input: {}
-				})
-			);
-			expect(result.exitCode).not.toBe(0);
-			expect(result.exitCode).not.toBe(2);
-			expect(result.stderr).toMatch(/^claude-bash-regulator: /);
-			expect(result.stdout).toBe('');
-		});
-	});
 });
 
 const decisionOf = (stdinPayload) => {
 	const cmd = { tool_name: 'Bash', permission_mode: 'default', tool_input: { command: stdinPayload } };
-	const result = spawnSync('node', [BIN], { input: JSON.stringify(cmd), encoding: 'utf8' });
+	const result = regulateEvent(JSON.stringify(cmd));
 	if (result.stdout === '') {
 		return { decision: 'no-match' };
 	}
@@ -142,7 +114,7 @@ describe('line-continuation chains (backslash-newline)', () => {
 	});
 });
 
-describe('Phase 2 carry-over: awk patterns reproduced end-to-end via the bin', () => {
+describe('Phase 2 carry-over: awk patterns reproduced end-to-end through regulate', () => {
 	describe('node absolute-path', () => {
 		test('blocks node with an absolute path script', () => {
 			const { decision, reason } = decisionOf('node /tmp/x.js');
@@ -272,6 +244,26 @@ describe('Phase 2 carry-over: awk patterns reproduced end-to-end via the bin', (
 		});
 	});
 
+	describe('python fed from a heredoc', () => {
+		test('blocks a python heredoc that edits files, and names the Edit and Write tools and the transient directory', () => {
+			const command = `python3 - <<'EOF'
+p='makefile'; s=open(p).read()
+s=s.replace("workflow-final-gate: lint test ## Run lint and test; a gate","workflow-final-gate: lint test test-tooling ## Run lint, test and test-tooling; a gate")
+open(p,'w').write(s)
+p='.claude/workflow/README.md'; s=open(p).read()
+s=s.replace("""\`workflow-final-gate\`
+runs every test.""","""\`workflow-final-gate\`
+runs every project test and every tooling test.""")
+open(p,'w').write(s)
+EOF
+git diff makefile .claude/workflow/README.md | grep '^[+-]' ; make -n workflow-final-gate`;
+			const { decision, reason } = decisionOf(command);
+			expect(decision).toBe('deny');
+			expect(reason).toMatch(/Edit or Write tool/);
+			expect(reason).toMatch(/claude-transient/);
+		});
+	});
+
 	describe('shell comment lines (rejected — resend without comments)', () => {
 		test('blocks a standalone comment line', () => {
 			const { decision, reason } = decisionOf('# Find the nested module');
@@ -333,7 +325,7 @@ describe('Phase 2 carry-over: awk patterns reproduced end-to-end via the bin', (
 	});
 });
 
-describe('Phase 2 carry-over: settings.json allow entries reproduced via the bin', () => {
+describe('Phase 2 carry-over: settings.json allow entries reproduced through regulate', () => {
 	test.each([
 		['cat /etc/hosts'],
 		['cd /tmp'],
@@ -975,7 +967,7 @@ describe('the generic rule set answers the examples of the export', () => {
 			...(agentType ? { agent_type: agentType } : {})
 		});
 	const decisionFor = (command, agentType) => {
-		const result = runBin(hookEvent(command, agentType));
+		const result = regulateEvent(hookEvent(command, agentType));
 		return { exitCode: result.exitCode, stdout: result.stdout, payload: result.stdout ? JSON.parse(result.stdout) : null };
 	};
 

@@ -102,6 +102,7 @@ describe('expected rule ids', () => {
 		'git-stash-readonly',
 		'git-mutating-local',
 		'sudo',
+		'python-heredoc',
 		'background-operator',
 		'common-allowed-commands',
 		'git-readonly-subcommands',

@@ -8,14 +8,6 @@
 	"engines": {
 		"node": ">=22"
 	},
-	"jest": {
-		"roots": [
-			"<rootDir>/src",
-			"<rootDir>/tests",
-			"<rootDir>/.claude/workflow/src",
-			"<rootDir>/.claude/workflow/tests"
-		]
-	},
 	"devDependencies": {
 		"@anthropic-ai/claude-code": "^2.1.304",
 		"@eslint/js": "^10.0.1",

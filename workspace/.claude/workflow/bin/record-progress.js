@@ -5,6 +5,7 @@ import { labelOfAgent } from '../src/generator/label-of-agent.js';
 import { progressLinesOf } from '../src/generator/progress-lines-of.js';
 import { readProgressLines } from '../src/generator/read-progress-lines.js';
 import { runProgressOf } from '../src/generator/run-progress-of.js';
+import { streamsOf } from '../src/generator/streams-of.js';
 
 const USAGE = 'record-progress: name the plan and the transcript directory, for example: node .claude/workflow/bin/record-progress.js plans/a-plan.md ~/.claude/projects/<project>/subagents/workflows/wf_<id> [--ended completed|halted|stopped] [--said "what a person saw"]',
 	OUTCOMES = ['completed', 'halted', 'stopped'],
@@ -190,15 +191,18 @@ const USAGE = 'record-progress: name the plan and the transcript directory, for 
 		} catch (thrown) {
 			return { out: '', error: messageOf(thrown), status: 1 };
 		}
-	},
-	answer = answerOf(process.argv.slice(2));
+	};
 
-if (answer.out !== '') {
-	process.stdout.write(`${answer.out}\n`);
+const main = () => {
+	const { stdout, stderr, status } = streamsOf(answerOf(process.argv.slice(2)));
+
+	process.stdout.write(stdout);
+	process.stderr.write(stderr);
+	process.exit(status);
+};
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+	main();
 }
 
-if (answer.error !== '') {
-	process.stderr.write(`${answer.error}\n`);
-}
-
-process.exit(answer.status);
+export { answerOf };

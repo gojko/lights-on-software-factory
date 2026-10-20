@@ -117,7 +117,7 @@ Present:
 2. **Why it is not allowed** — the rule, or the absence of one.
 3. **The smallest change** — the exact edit, with the file path.
 4. **The test, written first** — the test file
-   (`.claude/workflow/tests/regulator/regulate-bin.test.js` for a whole-command
+   (`.claude/workflow/tests/regulator/regulate.test.js` for a whole-command
    case, `.claude/workflow/tests/regulator/rules/<id>.test.js` for one rule, or
    `.claude/workflow/tests/regulator/rules.test.js` for the order), the table or
    block it extends, and the new cases verbatim.

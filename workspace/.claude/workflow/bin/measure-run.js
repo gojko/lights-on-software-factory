@@ -3,6 +3,7 @@ import { join } from 'node:path';
 
 import { agentTimingOf } from '../src/generator/agent-timing-of.js';
 import { runTimingLines } from '../src/generator/run-timing-lines.js';
+import { streamsOf } from '../src/generator/streams-of.js';
 
 const USAGE = 'measure-run: name the transcript directory of the run, for example: node .claude/workflow/bin/measure-run.js ~/.claude/projects/<project>/subagents/workflows/wf_<id>',
 	AGENT_FILE = /^agent-(?<id>.+)\.jsonl$/u,
@@ -81,7 +82,7 @@ const USAGE = 'measure-run: name the transcript directory of the run, for exampl
 		}
 		return { out: runTimingLines(timingsOf(directory)).join('\n'), error: '', status: 0 };
 	},
-	answerOf = (directory) => {
+	answerOf = ([directory]) => {
 		if (directory === undefined) {
 			return { out: '', error: USAGE, status: 1 };
 		}
@@ -90,15 +91,18 @@ const USAGE = 'measure-run: name the transcript directory of the run, for exampl
 		} catch (thrown) {
 			return { out: '', error: messageOf(thrown), status: 1 };
 		}
-	},
-	answer = answerOf(process.argv[2]);
+	};
 
-if (answer.out !== '') {
-	process.stdout.write(`${answer.out}\n`);
+const main = () => {
+	const { stdout, stderr, status } = streamsOf(answerOf(process.argv.slice(2)));
+
+	process.stdout.write(stdout);
+	process.stderr.write(stderr);
+	process.exit(status);
+};
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+	main();
 }
 
-if (answer.error !== '') {
-	process.stderr.write(`${answer.error}\n`);
-}
-
-process.exit(answer.status);
+export { answerOf };

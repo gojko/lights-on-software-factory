@@ -5,6 +5,7 @@ import { buildRunShape } from '../src/generator/build-run-shape.js';
 import { completedStepsOf } from '../src/generator/completed-steps-of.js';
 import { readExecutionPlan } from '../src/generator/read-execution-plan.js';
 import { readProgressLines } from '../src/generator/read-progress-lines.js';
+import { streamsOf } from '../src/generator/streams-of.js';
 import { validatePlan } from '../src/generator/validate-plan.js';
 import { writeScript } from '../src/generator/write-script.js';
 
@@ -63,7 +64,7 @@ const USAGE = 'generate-workflow: name the plan to convert, for example: node .c
 			? { out: writtenAt({ planPath, planText, block }), error: '', status: 0 }
 			: { out: '', error: faults.map(lineOf).join('\n'), status: 1 };
 	},
-	answerOf = (planPath) => {
+	answerOf = ([planPath]) => {
 		if (planPath === undefined) {
 			return { out: '', error: USAGE, status: 1 };
 		}
@@ -72,15 +73,18 @@ const USAGE = 'generate-workflow: name the plan to convert, for example: node .c
 		} catch (thrown) {
 			return { out: '', error: messageOf(thrown), status: 1 };
 		}
-	},
-	answer = answerOf(process.argv[2]);
+	};
 
-if (answer.out !== '') {
-	process.stdout.write(`${answer.out}\n`);
+const main = () => {
+	const { stdout, stderr, status } = streamsOf(answerOf(process.argv.slice(2)));
+
+	process.stdout.write(stdout);
+	process.stderr.write(stderr);
+	process.exit(status);
+};
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+	main();
 }
 
-if (answer.error !== '') {
-	process.stderr.write(`${answer.error}\n`);
-}
-
-process.exit(answer.status);
+export { answerOf };

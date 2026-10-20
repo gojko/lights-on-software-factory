@@ -7,6 +7,7 @@ import { npxRule } from './rules/npx.js';
 import { makeNpxDirectBinaryRule } from './rules/make-npx-direct-binary-rule.js';
 import { gitRemoteRule } from './rules/git-remote.js';
 import { sudoRule } from './rules/sudo.js';
+import { pythonHeredocRule } from './rules/python-heredoc.js';
 import { backgroundOperatorRule } from './rules/background-operator.js';
 import { bareWaitLoopRule } from './rules/bare-wait-loop.js';
 import { workerMakeVerificationRule } from './rules/worker-make-verification.js';
@@ -79,6 +80,7 @@ const rules = [
 	npxRule,
 	gitRemoteRule,
 	sudoRule,
+	pythonHeredocRule,
 
 	backgroundOperatorRule,
 

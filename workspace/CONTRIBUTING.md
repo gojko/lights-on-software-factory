@@ -16,8 +16,9 @@ workspace/
 │       ├── src/          tooling source
 │       └── tests/        tooling tests
 ├── eslint.config.js      lint configuration, with the local plugin
+├── jest.config.js        jest projects: `project` (src/, tests/) and `tooling` (.claude/workflow/)
 ├── makefile              build targets (run `make help`)
-└── package.json          dev dependencies and the jest configuration
+└── package.json          dev dependencies
 ```
 
 Put project code in `src/` and its tests in `tests/`. Change files under

@@ -109,9 +109,9 @@ The generated script runs the groups of the plan in order:
 A gate prompt carries the NAME of the goal and no command. The gate agent
 definition holds the one way to run a goal, so the invocation is stated in one
 place. The project makefile defines both goals. Both lint the whole project.
-`workflow-serial-gate` then runs only the tests related to the files changed
-since the last commit, so it stays fast between groups; `workflow-final-gate`
-runs every test.
+`workflow-serial-gate` then runs only the project tests related to the files
+changed since the last commit, so it stays fast between groups;
+`workflow-final-gate` runs every project test and every tooling test.
 
 Each agent answers a JSON schema that the script builds:
 
