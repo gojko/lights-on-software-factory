@@ -1,0 +1,68 @@
+{
+	"env": {
+		"CLAUDE_TRANSIENT_DIR": "/tmp/claude-transient"
+	},
+	"plansDirectory": "plans",
+	"permissions": {
+		"defaultMode": "acceptEdits",
+		"additionalDirectories": [
+			"/tmp/claude-transient"
+		],
+		"allow": [
+			"Read(./**)",
+			"Edit(./**)",
+			"Glob(*)",
+			"Read(//tmp/claude-transient/**)",
+			"Edit(//tmp/claude-transient/**)",
+			"Workflow",
+			"Skill(loop)",
+			"CronCreate",
+			"CronList",
+			"CronDelete"
+		]
+	},
+	"autoMemoryEnabled": false,
+	"awaySummaryEnabled": false,
+	"language": "ASD-STE100",
+	"showTurnDuration": true,
+	"showThinkingSummaries": true,
+	"syntaxHighlightingDisabled": false,
+	"useAutoModeDuringPlan": false,
+	"respectGitignore": true,
+	"disableAutoMode": "disable",
+	"enableWorkflows": true,
+	"workflowSizeGuideline": "large",
+	"outputStyle": "Concise",
+	"attribution": {
+		"sessionUrl": false,
+		"commit": "",
+		"pr": ""
+	},
+	"worktree": {
+		"bgIsolation": "none"
+	},
+	"hooks": {
+		"PreToolUse": [
+			{
+				"matcher": "Bash",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "node $CLAUDE_PROJECT_DIR/.claude/workflow/bin/regulate.js"
+					}
+				]
+			}
+		],
+		"PostToolUse": [
+			{
+				"matcher": "Edit|MultiEdit|Write",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "node $CLAUDE_PROJECT_DIR/.claude/workflow/bin/lint-edited-file.js"
+					}
+				]
+			}
+		]
+	}
+}
