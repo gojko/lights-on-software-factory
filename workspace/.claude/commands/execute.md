@@ -160,8 +160,10 @@ check>`.
   status of the plan and writes nothing unless `--out <path>` names a file.
   `--lessons` prints what the runs learned: blockers, deviations, defects, gate
   summaries, claims that did not hold and plan faults.
-- **Commit the progress file and the sidecar with the plan.** A clone with no
-  progress file repeats every step that already landed.
+- **Read the answers of a run through `show-progress.js --lessons`, never through a script.** 
+  Record the run first, then print the lessons. The task
+  output and `journal.jsonl` are raw; a script over them reads only the fields
+  it names, and it misses a gate repair or a step that wrote outside its task.
 - **A hung agent is not a dead agent.** The retry wrapper starts a dead agent
   again; an agent that stops writing keeps the run waiting. Stop the run, prove
   the tree by hand, and start the run again.
