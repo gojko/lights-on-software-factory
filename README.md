@@ -1,7 +1,9 @@
 # Lights-on software factory boilerplate for Claude Code
 
-A starting point for running a lights-on software factory with Claude Code. Based on the setup developed for
+A starting point for running a lights-on software factory with Claude Code (humans supervising agents, deterministic checks providing guardrails instead of markdown prayers, deterministic orchestrator scheduling tasks instead of LLM inference). Based on the setup developed for
 [Votito](https://www.votito.com), where the orchestrator reduced token spend compared to bare-bones Claude workflow execution by around 80%. 
+
+![lights on software factory summary](lights-on.png)
 
 See [gojko.net/slides/202609-gotocph.pdf](https://gojko.net/slides/202609-gotocph.pdf) for a quick overview.
 

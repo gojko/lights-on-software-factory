@@ -9,7 +9,6 @@ DOCKER_PLATFORM ?= linux/$(DOCKER_ARCH)
 DOCKER_IMAGE_DIR ?= vm
 DOCKER_IMAGE_NAME ?= software-factory
 CLAUDE_HOME := $(PROJECT)/.claude-home
-TMPDIR_MOUNT = $(if $(filter-out /tmp /tmp/,$(TMPDIR)),--mount type=bind$(comma)source=$(TMPDIR)$(comma)target=$(TMPDIR))
 
 docker-image: vm/Dockerfile
 	docker build --platform $(DOCKER_PLATFORM) -t $(DOCKER_IMAGE_NAME) $(DOCKER_IMAGE_DIR)
@@ -17,9 +16,6 @@ docker-image: vm/Dockerfile
 DOCKER_CMD=docker run --rm \
 		--platform $(DOCKER_PLATFORM) \
 		-v $(PROJECT):$(PROJECT) \
-		--mount type=bind,source=/tmp,target=/tmp \
-		$(TMPDIR_MOUNT) \
-		-eCDPATH=".:$(PROJECT):$(PROJECT)" \
 		-ePROJECT="$(PROJECT)" \
 		-v $(CLAUDE_HOME):/builder/.claude \
 		-eCLAUDE_CONFIG_DIR=/builder/.claude \
