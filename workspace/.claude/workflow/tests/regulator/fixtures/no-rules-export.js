@@ -1,0 +1,3 @@
+const notRules = [];
+
+export { notRules };

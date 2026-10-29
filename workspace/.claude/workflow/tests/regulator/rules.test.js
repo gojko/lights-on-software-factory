@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, test, expect } from '@jest/globals';
-import { rules } from '../../src/regulator/rules.js';
+import rules from '../../src/regulator/rules.js';
 import { evaluateCommand } from '../../src/regulator/evaluate-command.js';
 import { parseCommand } from '../../src/regulator/parse-command.js';
 import { segmentAttempts } from '../../src/regulator/segment-attempts.js';

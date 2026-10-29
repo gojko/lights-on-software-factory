@@ -187,4 +187,4 @@ const rules = [
 	workflowAgentCatchAllRule
 ];
 
-export { rules };
+export default rules;

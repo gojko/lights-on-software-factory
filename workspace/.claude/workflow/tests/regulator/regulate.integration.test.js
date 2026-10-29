@@ -4,9 +4,10 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 const BIN = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', 'bin', 'regulate.js');
+const FIXTURES = resolve(dirname(fileURLToPath(import.meta.url)), 'fixtures');
 
-const runBin = (stdinPayload) => {
-	const result = spawnSync('node', [BIN], { input: stdinPayload, encoding: 'utf8' });
+const runBin = (stdinPayload, args = []) => {
+	const result = spawnSync('node', [BIN, ...args], { input: stdinPayload, encoding: 'utf8' });
 	return { exitCode: result.status, stdout: result.stdout, stderr: result.stderr };
 };
 
@@ -48,6 +49,26 @@ describe('regulate.js bin entry', () => {
 		expect(result.exitCode).not.toBe(0);
 		expect(result.exitCode).not.toBe(2);
 		expect(result.stderr).toMatch(/^claude-bash-regulator: /);
+		expect(result.stdout).toBe('');
+	});
+
+	test('decides with the rules of the entry point given as the first argument', () => {
+		const result = runBin(bashEvent('hello world'), [resolve(FIXTURES, 'custom-rules.js')]);
+		expect(result.exitCode).toBe(0);
+		expect(JSON.parse(result.stdout).hookSpecificOutput.permissionDecision).toBe('allow');
+	});
+
+	test('does not apply the default rules when an entry point is given', () => {
+		const result = runBin(bashEvent('sudo rm -rf /'), [resolve(FIXTURES, 'custom-rules.js')]);
+		expect(result.exitCode).toBe(0);
+		expect(result.stdout).toBe('');
+	});
+
+	test('exits non-zero (not 2) with stderr message when the entry point cannot be loaded', () => {
+		const result = runBin(bashEvent('ls'), [resolve(FIXTURES, 'no-rules-export.js')]);
+		expect(result.exitCode).not.toBe(0);
+		expect(result.exitCode).not.toBe(2);
+		expect(result.stderr).toMatch(/^claude-bash-regulator: .*does not export an array as default/);
 		expect(result.stdout).toBe('');
 	});
 });

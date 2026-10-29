@@ -38,6 +38,19 @@ claude: | $(CLAUDE_HOME)
 	--entrypoint /bin/bash \
 	-it $(DOCKER_IMAGE_NAME) -ic claude
 
+claude-workspace: | $(CLAUDE_HOME)
+	docker run --rm \
+		--platform $(DOCKER_PLATFORM) \
+		-v $(PROJECT)/workspace:$(PROJECT)/workspace \
+		-ePROJECT="$(PROJECT)" \
+		-v $(CLAUDE_HOME):/builder/.claude \
+		-eCLAUDE_CONFIG_DIR=/builder/.claude \
+		--shm-size=4gb \
+		-w "$(PROJECT)/workspace" \
+		-e ANTHROPIC_API_KEY \
+		--entrypoint /bin/bash \
+		-it $(DOCKER_IMAGE_NAME) -ic claude
+
 root:
 	docker run \
 		-u 0 \
@@ -47,4 +60,4 @@ root:
 init test lint: docker-image | $(CLAUDE_HOME)
 	$(DOCKER_CMD) --entrypoint /usr/bin/make -t $(DOCKER_IMAGE_NAME) $@
 
-.PHONY: init test lint shell claude root docker-image
+.PHONY: init test lint shell claude claude-workspace root docker-image

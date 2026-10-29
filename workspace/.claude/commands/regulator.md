@@ -14,6 +14,13 @@ The regulator lives in `.claude/workflow/`: `bin/regulate.js` is the
 holds the ordered rule list, and `src/regulator/rules/<id>.js` holds each rule
 that needs more than a regular expression.
 
+`bin/regulate.js` takes an optional first argument: the path of a module whose
+default export is an array of rules, which then replaces `src/regulator/rules.js`. A
+relative path resolves against the working directory. The hook is set in
+`.claude/settings.json` or `.claude/settings.local.json`; look in both. When the
+hook passes that argument, pass the same path to `debug.js` with
+`--rules <entry-point>`, or the trace uses the default rules.
+
 ## Arguments
 
 `$ARGUMENTS` — the full Bash command, exactly as it would run. Quotes, pipes,

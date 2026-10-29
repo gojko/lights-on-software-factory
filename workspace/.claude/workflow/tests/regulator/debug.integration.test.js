@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 const BIN = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', 'bin', 'debug.js');
+const FIXTURES = resolve(dirname(fileURLToPath(import.meta.url)), 'fixtures');
 
 describe('debug.js bin entry', () => {
 	test('exits non-zero and prints a usage line that names the agent flag when neither argv nor stdin supplies a command', () => {
@@ -26,5 +27,18 @@ describe('debug.js bin entry', () => {
 		expect(result.stdout).toMatch(/command: ls \/tmp/);
 		expect(result.stdout).toMatch(/role: workflow-worker/);
 		expect(result.stdout).toMatch(/merged decision: allow/);
+	});
+
+	test('names the rules flag in the usage line', () => {
+		const result = spawnSync('node', [BIN], { encoding: 'utf8', input: '' });
+		expect(result.stderr).toMatch(/--rules <entry-point>/);
+	});
+
+	test('traces the command with the rules of the entry point named by the rules flag', () => {
+		const result = spawnSync('node', [BIN, '--rules', resolve(FIXTURES, 'custom-rules.js'), 'hello', 'world'], { encoding: 'utf8' });
+		expect(result.status).toBe(0);
+		expect(result.stdout).toMatch(/command: hello world/);
+		expect(result.stdout).toMatch(/\(1 rules\)/);
+		expect(result.stdout).toMatch(/resolved by rule: custom-allow-hello/);
 	});
 });

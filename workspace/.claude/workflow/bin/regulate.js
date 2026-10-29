@@ -2,9 +2,10 @@ import { readFileSync } from 'node:fs';
 import process from 'node:process';
 import { evaluateCommand } from '../src/regulator/evaluate-command.js';
 import { hookContext } from '../src/regulator/hook-context.js';
-import { rules } from '../src/regulator/rules.js';
+import { loadRules } from '../src/regulator/load-rules.js';
+import defaultRules from '../src/regulator/rules.js';
 
-function regulate(event) {
+function regulate(event, rules = defaultRules) {
 	if (event && event.permission_mode === 'bypassPermissions' && event.tool_name === 'Bash') {
 		return {
 			exitCode: 2,
@@ -28,7 +29,7 @@ function regulate(event) {
 	return { exitCode: 0, stdout: JSON.stringify(payload) };
 }
 
-const main = () => {
+const main = async () => {
 	let parsed, result;
 	try {
 		parsed = JSON.parse(readFileSync(0, 'utf8'));
@@ -37,7 +38,7 @@ const main = () => {
 		process.exit(1);
 	}
 	try {
-		result = regulate(parsed);
+		result = regulate(parsed, await loadRules(process.argv[2]));
 	} catch (err) {
 		process.stderr.write(`claude-bash-regulator: ${err.message}\n`);
 		process.exit(1);
